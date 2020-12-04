@@ -1,0 +1,30 @@
+{
+	"name": "shinsengumi",
+	"version": "1.0.0",
+	"description": "discord moderation bot",
+	"main": "./src/index.ts",
+	"scripts": {
+		"preinstall": "nvm use",
+		"test": "jest",
+		"coverage": "jest --coverage",
+		"start": "ts-node -r dotenv/config ./src/index.ts"
+	},
+	"author": "yi fan song <yfsong00@gmail.com>",
+	"license": "GPL-3.0-or-later",
+	"dependencies": {
+		"discord.js": "^12.2.0",
+		"dotenv": "^8.2.0",
+		"mssql": "^6.2.1"
+	},
+	"devDependencies": {
+		"@types/jest": "^26.0.10",
+		"@types/node": "^12.12.51",
+		"eslint": "^7.5.0",
+		"eslint-config-airbnb-base": "^14.2.0",
+		"eslint-plugin-import": "^2.22.0",
+		"jest": "^26.4.0",
+		"ts-jest": "^26.2.0",
+		"ts-node": "^8.10.2",
+		"typescript": "^3.9.7"
+	}
+}
