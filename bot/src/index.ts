@@ -70,8 +70,6 @@ client.on('message', msg => {
 	
 });
 
-client.login(process.env.BOT_TOKEN);
-
 const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout
@@ -107,3 +105,5 @@ rl.on('line', (line) => {
 			break;
 	}
 });
+
+client.login(process.env.BOT_TOKEN);

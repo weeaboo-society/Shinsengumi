@@ -18,7 +18,7 @@
 
 import { Message } from "discord.js";
 
-const replyPersistTime = 15;
+const replyPersistTime = 60;
 
 export const replyToCommand = (msg: Message, reply: string) => {
 	msg.reply(reply)

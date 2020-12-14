@@ -80,5 +80,7 @@ export const splitArguments = (str: string) => {
 
 	args.push(curArg);
 
+	args.filter(s => s != '');
+
 	return args;
 }

@@ -1,0 +1,7 @@
+FROM node:14.15.1
+
+WORKDIR /shinsengumi
+
+COPY . .
+
+CMD [ "npm", "start" ]
