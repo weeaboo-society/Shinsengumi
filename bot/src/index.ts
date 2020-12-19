@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
+import { constants } from 'buffer';
 import { Client, MessageReaction, TextChannel, User } from 'discord.js';
 import { createConnection } from 'mysql';
 import { createInterface } from 'readline';
@@ -34,13 +35,21 @@ var connection = createConnection({
 	user     : 'root',
 	password : process.env.MYSQL_ROOT_PASSWORD,
 	database : 'yamamoto'
-  });
+});
    
-connection.connect();
+const retryConnection = () => {
+	try {
+		setTimeout(() => {
+			connection.connect((error) => {
+				if (error) retryConnection();
+			});
+		});
+	} catch (error) {
+		retryConnection();
+	}
+}
 
-updateCC(connection);
-updateRRD(connection);
-updateRRM(connection);
+retryConnection();
 
 const commandHandlers = getCommandHandlers();
 
@@ -48,6 +57,9 @@ client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
 	client.user.setPresence({}).catch(console.error);
 
+	updateCC(connection);
+	updateRRD(connection);
+	updateRRM(connection);
 
 	reactionRoleMessage.forEach(rrm => {
 		let channel = client.channels.resolve(rrm.ChannelID);
