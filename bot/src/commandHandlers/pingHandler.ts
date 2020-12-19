@@ -16,16 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { replyToCommand } from "../utils/messageUtils";
-import { Permissions, Message, Client } from "discord.js";
+import { BitFieldResolvable, Client, Message, Permissions, PermissionString } from 'discord.js';
 
-export const permissions = [ Permissions.FLAGS.ADMINISTRATOR ]
+import { replyToCommand } from '../utils/messageUtils';
+
+export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
 
 /**
  * 
  */
 export default (msg: Message, _: Client) => {
-	if (!msg.member.hasPermission(Permissions.FLAGS.ADMINISTRATOR)) return;
-
-	replyToCommand(msg, `This channel's id is: ${msg.channel.id}, guild id: ${msg.guild.id}`);
+	replyToCommand(msg, 'pong');
 }

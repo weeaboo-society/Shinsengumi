@@ -12,10 +12,12 @@
 	"license": "GPL-3.0-or-later",
 	"dependencies": {
 		"discord.js": "^12.2.0",
-		"dotenv": "^8.2.0"
+		"dotenv": "^8.2.0",
+		"mysql": "^2.18.1"
 	},
 	"devDependencies": {
 		"@types/jest": "^26.0.10",
+		"@types/mysql": "^2.15.16",
 		"@types/node": "^12.12.51",
 		"eslint": "^7.5.0",
 		"eslint-config-airbnb-base": "^14.2.0",

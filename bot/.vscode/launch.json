@@ -8,8 +8,11 @@
 			"name": "Node Inspector",
 			"type": "node",
 			"request": "launch",
-			"args": ["${workspaceRoot}/bot/src/index.ts"],
-			"runtimeArgs": ["-r", "ts-node/register", "-r", "dotenv/config"],
+			"args": ["${workspaceRoot}/src/index.ts"],
+			"runtimeArgs": [
+				"-r", "ts-node/register", 
+				"-r", "dotenv/config"
+			],
 			"cwd": "${workspaceRoot}",
 			"protocol": "inspector",
 			"internalConsoleOptions": "openOnSessionStart",
@@ -29,5 +32,10 @@
 			  "program": "${workspaceFolder}/node_modules/jest/bin/jest"
 			}
 	   },
+	   {
+		   "name": "Attach Node Inspector",
+		   "type": "node",
+		   "request": "attach",
+	   }
 	]
 }

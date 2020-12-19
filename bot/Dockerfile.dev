@@ -1,7 +1,7 @@
 FROM node:14.15.1
 
-WORKDIR /shinsengumi
+USER node
 
-COPY . .
+WORKDIR /home/node/shinsengumi
 
-CMD [ "npm", "start" ]
+ENTRYPOINT [ "/bin/bash" ]

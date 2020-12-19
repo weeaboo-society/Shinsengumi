@@ -1,6 +1,8 @@
 FROM node:14.15.1-alpine
 
-WORKDIR /shinsengumi
+USER node
+
+WORKDIR /home/node/shinsengumi
 
 COPY . .
 

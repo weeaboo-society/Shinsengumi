@@ -16,42 +16,91 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { Client } from 'discord.js';
+import { Client, MessageReaction, TextChannel, User } from 'discord.js';
+import { createConnection } from 'mysql';
 import { createInterface } from 'readline';
+
 import { getCommandHandlers } from './commandHandlers';
+import {
+    commandChannels, reactionRoleDictionary, reactionRoleMessage, updateCC, updateRRD, updateRRM
+} from './state';
+import { replyToCommand } from './utils/messageUtils';
 import { extractCommand, stripBotMention } from './utils/stringUtils';
 
 const client = new Client();
 
-const guildSettings = [
-	{ 
-		guildId: '217450051985735680', 
-		commandChannel: '217450051985735680'
-	},
-	{
-		guildId: '290296335230304259',
-		commandChannel: '735775650186657822'
-	},
-]
+var connection = createConnection({
+	host     : 'shinsengumi_db',
+	user     : 'root',
+	password : process.env.MYSQL_ROOT_PASSWORD,
+	database : 'yamamoto'
+  });
+   
+connection.connect();
+
+updateCC(connection);
+updateRRD(connection);
+updateRRM(connection);
 
 const commandHandlers = getCommandHandlers();
 
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
 	client.user.setPresence({}).catch(console.error);
+
+
+	reactionRoleMessage.forEach(rrm => {
+		let channel = client.channels.resolve(rrm.ChannelID);
+		if (channel.type === 'text') {
+			(channel as TextChannel).messages.fetch(rrm.MessageID)
+				.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
+				.catch(console.error);
+		}
+	});
+
+	let populateReactionRolesCacheInterval = setInterval(() => {
+		if (reactionRoleMessage.length !== 0) {
+			reactionRoleMessage.forEach(rrm => {
+				let channel = client.channels.resolve(rrm.ChannelID);
+				if (channel.type === 'text') {
+					(channel as TextChannel).messages.fetch(rrm.MessageID)
+						.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
+						.catch(console.error);
+				}
+			});
+			clearInterval(populateReactionRolesCacheInterval);
+		}
+	}, 30000);
+
 });
 
 client.on('message', msg => {
 
 	// Ignore private messages
 	if (!msg.guild) return;
-	// Ignore message if not in the guild's command channel
-	if (!(msg.channel.id === guildSettings.find((setting) => setting.guildId === msg.guild.id)?.commandChannel)) return;
 	// Ignore own messages
 	if (msg.author.id === client.user.id) return;
+	// Ignore message if not in the guild's command channel
+	const guildCommandChannels = commandChannels.filter((cc) => cc.guildId === msg.guild.id && cc.channelId !== undefined);
+	if (guildCommandChannels.length === 0 && msg.mentions.has(client.user)) {
+		// There is no command channels setup for the guild
 
-	const cmd = extractCommand(msg.content);
-	msg.content = stripBotMention(msg.content);
+		// Special case for `setcc` command, this command can be used in any channel.
+		if (extractCommand(msg.content.trim()) === 'setcc') {
+			msg.content = stripBotMention(msg.content.trim());
+
+			commandHandlers.get('setcc').handler(msg, client, connection);
+			return;
+		}
+
+		replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
+		return;
+	}
+	if (!guildCommandChannels.find(cc => cc.channelId === msg.channel.id)) return;
+
+	// Clean up user input
+	const cmd = extractCommand(msg.content.trim());
+	msg.content = stripBotMention(msg.content.trim());
 	
 	{
 		// Dev testing block, code to remove before commiting
@@ -62,12 +111,45 @@ client.on('message', msg => {
 
 	if (commandHandlers.has(cmd)) {
 		if (msg.member.hasPermission(commandHandlers.get(cmd).permissions)) {
-			commandHandlers.get(cmd).handler(msg, client);
+			commandHandlers.get(cmd).handler(msg, client, connection);
 		}
 	} else {
 		console.error(`no such command: ${msg.content}`);
 	}
-	
+});
+
+client.on('messageReactionAdd', (messageReaction: MessageReaction, user: User) => {
+	if (!user) return;
+	if (user.id === client.user.id) return;
+	if (!messageReaction.message.guild) return;
+
+	const member = messageReaction.message.guild.members.resolve(user.id);
+	const guild = messageReaction.message.guild;
+
+	const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+
+	const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
+
+	if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
+});
+
+client.on('messageReactionRemove', (messageReaction: MessageReaction, user: User) => {
+	if (!user) return;
+	if (user.id === client.user.id) return;
+	if (!messageReaction.message.guild) return;
+
+	const member = messageReaction.message.guild.members.resolve(user.id);
+	const guild = messageReaction.message.guild;
+
+	const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+
+	const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
+
+	if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
+});
+
+client.on('disconnect', () => {
+	connection.end();
 });
 
 const rl = createInterface({
@@ -89,16 +171,16 @@ rl.on('line', (line) => {
 		case 'show w':
 			process.stdout.write(`
 	This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details. \n \n`);
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details. \n \n`);
 			break;
 		case 'show c':
 			process.stdout.write(`
 	This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version. \n \n`);
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version. \n \n`);
 			break;
 		default:
 			process.stdout.write('No such command \n');

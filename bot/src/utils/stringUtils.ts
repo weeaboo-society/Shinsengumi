@@ -41,9 +41,33 @@ export const extractCommand = (str: string) => {
 }
 
 /**
+ * Extract the id of the tagged channel from `<#channel-id>`
+ * @param str Any string containing at most 1 channel tag 
+ */
+export const extractChannelId = (str: string) => {
+	return str.replace(/<#([0-9]+)>/, '$1');
+}
+
+/**
+ * Extract the id of the emoji from `<:emoji-name:emoji-id>`
+ * @param str Any string containing at most 1 emoji
+ */
+export const extractEmojiId = (str: string) => {
+	return str.replace(/<:[a-zA-Z]+:([0-9]+)>/, '$1');
+}
+
+/**
+ * Extract the id of the tagged role from `<@&role-id>`
+ * @param str Any string containing at most 1 role tag
+ */
+export const extractRoleId = (str: string) => {
+	return str.replace(/<@&([0-9]+)>/, '$1');
+}
+
+/**
  * 
  */
-export const splitArguments = (str: string) => {
+export const splitArguments = (str: string): string[] => {
 	// TODO: this is jank, maybe find better way to do this
 	
 	let extractedCommand = false;
@@ -78,7 +102,7 @@ export const splitArguments = (str: string) => {
 		}
 	}
 
-	args.push(curArg);
+	if (extractedCommand) args.push(curArg);
 
 	args.filter(s => s != '');
 

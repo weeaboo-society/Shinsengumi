@@ -1,0 +1,32 @@
+version: "3.9"
+
+services: 
+
+  client:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile.dev
+    container_name: shinsengumi_client
+    networks: 
+      - db
+    volumes: 
+      - type: bind
+        source: ./bot
+        target: /home/node/shinsengumi
+    environment: 
+      MYSQL_ROOT_PASSWORD: password
+
+  db:
+    image: mysql
+    container_name: shinsengumi_db
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    networks: 
+      - db
+    environment: 
+      MYSQL_ROOT_PASSWORD: password
+     
+networks:
+  db:
+    driver: bridge
+    name: shinsengumi_db

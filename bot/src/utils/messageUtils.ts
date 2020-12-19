@@ -16,12 +16,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { Message } from "discord.js";
+import { Message } from 'discord.js';
 
+const deleteReplies = false;
 const replyPersistTime = 60;
 
 export const replyToCommand = (msg: Message, reply: string) => {
 	msg.reply(reply)
-		.then((rep) => {setTimeout(() => {msg.channel.bulkDelete([msg, rep])}, replyPersistTime * 1000);})
+		.then((rep) => {
+			if (deleteReplies) {
+				setTimeout(() => {msg.channel.bulkDelete([msg, rep])}, replyPersistTime * 1000);
+			}
+		})
 		.catch(console.error);
 }
+
+

@@ -16,39 +16,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { BitFieldResolvable, Client, Message, PermissionString } from 'discord.js';
-import * as fs from 'fs';
+import {
+    BitFieldResolvable, Client, Message, Permissions, PermissionString, TextChannel
+} from 'discord.js';
 import { Connection } from 'mysql';
 
-type MessageCommandHandlerFunc = (msg: Message, client: Client, db: Connection) => void;
+import { splitArguments } from '../utils/stringUtils';
 
-interface CommandHandler {
-	permissions: BitFieldResolvable<PermissionString>;
-	handler: MessageCommandHandlerFunc;
-}
-
-const commandHandlers = new Map<string,CommandHandler>();
+export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
 
 /**
  * 
  */
-export const getCommandHandlers = () => {
-	if (commandHandlers.size != 0) {
-		return commandHandlers;
-	}
+export default (msg: Message, _c: Client, _con: Connection) => {
+	const args = splitArguments(msg.content);
 
-	const files = fs.readdirSync('./src/commandHandlers');
-
-	files.forEach(file => {
-		if (file == 'index.ts') return;
-
-		const req = require(`./${file}`);
-		
-		commandHandlers.set(file.replace('Handler.ts', ''), {
-			handler: req.default,
-			permissions: req.permissions,
-		});
-	})
-
-	return commandHandlers;
-}; 
+	
+}
