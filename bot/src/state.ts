@@ -25,7 +25,10 @@ export let reactionRoleMessage: ReactionRoleMessage[] = [];
 
 export const updateCC = (db: Connection) => {
 	db.query('SELECT * FROM CommandChannels', function (error, results: CommandChannels[]) {
-		if (error) throw error;
+		if (error) {
+			console.error(error);
+			setTimeout(() => updateCC(db), 30000);
+		}
 
 		commandChannels = results ?? [];
 	});
@@ -33,7 +36,10 @@ export const updateCC = (db: Connection) => {
 
 export const updateRRD = (db: Connection) => {
 	db.query('SELECT * FROM ReactionRoleDictionary', (error, results: ReactionRoleDictionary[]) => {
-		if (error) throw error;
+		if (error) {
+			console.error(error);
+			setTimeout(() => updateRRD(db), 30000);
+		}
 
 		reactionRoleDictionary = results ?? [];
 	});
@@ -41,7 +47,10 @@ export const updateRRD = (db: Connection) => {
 
 export const updateRRM = (db: Connection) => {
 	db.query('SELECT * FROM ReactionRoleMessage', (error, results: ReactionRoleMessage[]) => {
-		if (error) throw error;
+		if (error) {
+			console.error(error);
+			setTimeout(() => updateRRM(db), 30000);
+		}
 
 		reactionRoleMessage = results ?? [];
 	});
