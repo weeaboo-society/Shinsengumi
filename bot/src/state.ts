@@ -19,19 +19,15 @@ import { Connection } from 'mysql';
 
 import { CommandChannels, ReactionRoleDictionary, ReactionRoleMessage } from './db_types';
 
-interface commandChannel {
-	guildId: string;
-	channelId: string;
-}
-
-export let commandChannels: commandChannel[];
-export let reactionRoleDictionary: ReactionRoleDictionary[];
-export let reactionRoleMessage: ReactionRoleMessage[];
+export let commandChannels: CommandChannels[] = [];
+export let reactionRoleDictionary: ReactionRoleDictionary[] = [];
+export let reactionRoleMessage: ReactionRoleMessage[] = [];
 
 export const updateCC = (db: Connection) => {
-	db.query('SELECT * FROM CommandChannels', function (error, results) {
+	db.query('SELECT * FROM CommandChannels', function (error, results: CommandChannels[]) {
 		if (error) throw error;
-		commandChannels = results.map((cc: CommandChannels) => ({guildId: cc.GuildID, channelId: cc.ChannelID}));
+
+		commandChannels = results ?? [];
 	});
 }
 
@@ -39,12 +35,14 @@ export const updateRRD = (db: Connection) => {
 	db.query('SELECT * FROM ReactionRoleDictionary', (error, results: ReactionRoleDictionary[]) => {
 		if (error) throw error;
 
-		reactionRoleDictionary = results;
+		reactionRoleDictionary = results ?? [];
 	});
 }
 
 export const updateRRM = (db: Connection) => {
 	db.query('SELECT * FROM ReactionRoleMessage', (error, results: ReactionRoleMessage[]) => {
-		reactionRoleMessage = results;
+		if (error) throw error;
+
+		reactionRoleMessage = results ?? [];
 	});
 }

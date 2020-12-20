@@ -1,20 +1,9 @@
 version: "3.9"
 
-services: 
+services:
 
-  client:
-    build:
-      context: ./bot
-      dockerfile: Dockerfile.dev
-    container_name: shinsengumi_client
-    networks: 
-      - db
-    volumes: 
-      - type: bind
-        source: ./bot
-        target: /home/node/shinsengumi
-    environment: 
-      MYSQL_ROOT_PASSWORD: password
+  data:
+      build: data/.
 
   db:
     image: mysql
@@ -25,6 +14,27 @@ services:
       - db
     environment: 
       MYSQL_ROOT_PASSWORD: password
+    volumes:
+      - ./data:/docker-entrypoint-initdb.d
+    volumes_from:
+      - data
+
+  client:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile.dev
+    container_name: shinsengumi_client
+    networks: 
+      - db
+    depends_on:
+      - db
+    volumes: 
+      - type: bind
+        source: ./bot
+        target: /home/node/shinsengumi
+    environment: 
+      MYSQL_ROOT_PASSWORD: password
+
      
 networks:
   db:

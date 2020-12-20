@@ -16,9 +16,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { constants } from 'buffer';
 import { Client, MessageReaction, TextChannel, User } from 'discord.js';
-import { createConnection } from 'mysql';
+import { Connection, createConnection } from 'mysql';
 import { createInterface } from 'readline';
 
 import { getCommandHandlers } from './commandHandlers';
@@ -29,139 +28,146 @@ import { replyToCommand } from './utils/messageUtils';
 import { extractCommand, stripBotMention } from './utils/stringUtils';
 
 const client = new Client();
-
-var connection = createConnection({
-	host     : 'shinsengumi_db',
-	user     : 'root',
-	password : process.env.MYSQL_ROOT_PASSWORD,
-	database : 'yamamoto'
-});
    
-const retryConnection = () => {
+const retryConnection = (callback: (connection: Connection) => void) => {
 	try {
-		setTimeout(() => {
-			connection.connect((error) => {
-				if (error) retryConnection();
-			});
+		let connection = createConnection({
+			host     : 'shinsengumi_db',
+			user     : 'root',
+			password : process.env.MYSQL_ROOT_PASSWORD,
+			database : 'yamamoto'
 		});
+
+		connection.connect((error) => {
+			if (error) {
+				console.error(error);
+				setTimeout(() => retryConnection(callback), 30000);
+			}
+
+			callback(connection);
+		});
+
 	} catch (error) {
-		retryConnection();
+		console.error(error);
+		setTimeout(() => retryConnection(callback), 30000);
 	}
 }
 
-retryConnection();
+let connection: Connection;
 
-const commandHandlers = getCommandHandlers();
-
-client.on('ready', () => {
-	console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
-	client.user.setPresence({}).catch(console.error);
-
+retryConnection((con) => {
+	console.info('Successfully connected to db.');
+	let connection = con;
+	
 	updateCC(connection);
 	updateRRD(connection);
 	updateRRM(connection);
 
-	reactionRoleMessage.forEach(rrm => {
-		let channel = client.channels.resolve(rrm.ChannelID);
-		if (channel.type === 'text') {
-			(channel as TextChannel).messages.fetch(rrm.MessageID)
-				.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
-				.catch(console.error);
+	const commandHandlers = getCommandHandlers();
+
+	client.on('ready', () => {
+		console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
+		client.user.setPresence({}).catch(console.error);
+
+		const tryFetchReactionRoleMessage = () => {
+			if (reactionRoleMessage.length !== 0) {
+				reactionRoleMessage.forEach(rrm => {
+					let channel = client.channels.resolve(rrm.ChannelID);
+					if (channel.type === 'text') {
+						(channel as TextChannel).messages.fetch(rrm.MessageID)
+							.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
+							.catch((err) => {
+								console.error(err);
+								setTimeout(() => tryFetchReactionRoleMessage(), 30000);
+							});
+					}
+				});
+			} else {
+				setTimeout(() => tryFetchReactionRoleMessage(), 30000);
+			}
+		};
+
+		tryFetchReactionRoleMessage();
+
+	});
+
+	client.on('message', msg => {
+
+		// Ignore private messages
+		if (!msg.guild) return;
+		// Ignore own messages
+		if (msg.author.id === client.user.id) return;
+		// Ignore message if not in the guild's command channel
+		const guildCommandChannels = commandChannels.filter((cc) => cc.GuildID === msg.guild.id && cc.ChannelID !== undefined);
+		if (guildCommandChannels.length === 0 && msg.mentions.has(client.user)) {
+			// There is no command channels setup for the guild
+
+			// Special case for `setcc` command, this command can be used in any channel.
+			if (extractCommand(msg.content.trim()) === 'setcc') {
+				msg.content = stripBotMention(msg.content.trim());
+
+				commandHandlers.get('setcc').handler(msg, client, connection);
+				return;
+			}
+
+			replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
+			return;
+		}
+		if (!guildCommandChannels.find(cc => cc.ChannelID === msg.channel.id)) return;
+
+		// Clean up user input
+		const cmd = extractCommand(msg.content.trim());
+		msg.content = stripBotMention(msg.content.trim());
+		
+		{
+			// Dev testing block, code to remove before commiting
+			// console.info(msg);
+			console.info(cmd);
+			console.info(msg.content);
+		}
+
+		if (commandHandlers.has(cmd)) {
+			if (msg.member.hasPermission(commandHandlers.get(cmd).permissions)) {
+				commandHandlers.get(cmd).handler(msg, client, connection);
+			}
+		} else {
+			console.error(`no such command: ${msg.content}`);
 		}
 	});
 
-	let populateReactionRolesCacheInterval = setInterval(() => {
-		if (reactionRoleMessage.length !== 0) {
-			reactionRoleMessage.forEach(rrm => {
-				let channel = client.channels.resolve(rrm.ChannelID);
-				if (channel.type === 'text') {
-					(channel as TextChannel).messages.fetch(rrm.MessageID)
-						.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
-						.catch(console.error);
-				}
-			});
-			clearInterval(populateReactionRolesCacheInterval);
-		}
-	}, 30000);
+	client.on('messageReactionAdd', (messageReaction: MessageReaction, user: User) => {
+		if (!user) return;
+		if (user.id === client.user.id) return;
+		if (!messageReaction.message.guild) return;
 
-});
+		const member = messageReaction.message.guild.members.resolve(user.id);
+		const guild = messageReaction.message.guild;
 
-client.on('message', msg => {
+		const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-	// Ignore private messages
-	if (!msg.guild) return;
-	// Ignore own messages
-	if (msg.author.id === client.user.id) return;
-	// Ignore message if not in the guild's command channel
-	const guildCommandChannels = commandChannels.filter((cc) => cc.guildId === msg.guild.id && cc.channelId !== undefined);
-	if (guildCommandChannels.length === 0 && msg.mentions.has(client.user)) {
-		// There is no command channels setup for the guild
+		const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
 
-		// Special case for `setcc` command, this command can be used in any channel.
-		if (extractCommand(msg.content.trim()) === 'setcc') {
-			msg.content = stripBotMention(msg.content.trim());
+		if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
+	});
 
-			commandHandlers.get('setcc').handler(msg, client, connection);
-			return;
-		}
+	client.on('messageReactionRemove', (messageReaction: MessageReaction, user: User) => {
+		if (!user) return;
+		if (user.id === client.user.id) return;
+		if (!messageReaction.message.guild) return;
 
-		replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
-		return;
-	}
-	if (!guildCommandChannels.find(cc => cc.channelId === msg.channel.id)) return;
+		const member = messageReaction.message.guild.members.resolve(user.id);
+		const guild = messageReaction.message.guild;
 
-	// Clean up user input
-	const cmd = extractCommand(msg.content.trim());
-	msg.content = stripBotMention(msg.content.trim());
-	
-	{
-		// Dev testing block, code to remove before commiting
-		// console.info(msg);
-		console.info(cmd);
-		console.info(msg.content);
-	}
+		const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-	if (commandHandlers.has(cmd)) {
-		if (msg.member.hasPermission(commandHandlers.get(cmd).permissions)) {
-			commandHandlers.get(cmd).handler(msg, client, connection);
-		}
-	} else {
-		console.error(`no such command: ${msg.content}`);
-	}
-});
+		const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
 
-client.on('messageReactionAdd', (messageReaction: MessageReaction, user: User) => {
-	if (!user) return;
-	if (user.id === client.user.id) return;
-	if (!messageReaction.message.guild) return;
+		if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
+	});
 
-	const member = messageReaction.message.guild.members.resolve(user.id);
-	const guild = messageReaction.message.guild;
-
-	const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-
-	const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
-
-	if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
-});
-
-client.on('messageReactionRemove', (messageReaction: MessageReaction, user: User) => {
-	if (!user) return;
-	if (user.id === client.user.id) return;
-	if (!messageReaction.message.guild) return;
-
-	const member = messageReaction.message.guild.members.resolve(user.id);
-	const guild = messageReaction.message.guild;
-
-	const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-
-	const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
-
-	if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
-});
-
-client.on('disconnect', () => {
-	connection.end();
+	client.on('disconnect', () => {
+		connection.end();
+	});
 });
 
 const rl = createInterface({
