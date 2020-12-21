@@ -42,14 +42,6 @@ export default (msg: Message, _: Client, db: Connection) => {
 
 	const args = splitArguments(msg.content);
 
-	if (args.length < 2) {
-		replyToCommand(msg, 'Not enough arguments');
-		return;
-	}
-
-	const emojiId = extractEmojiId(args[1]);
-	const roleId = extractRoleId(args[2]);
-
 	switch(args[0]) {
 		case 'set-message':
 			if (args.length < 3) {
@@ -80,11 +72,15 @@ export default (msg: Message, _: Client, db: Connection) => {
 			updateRRM(db);
 
 			break;
-		case 'add':
+		case 'add': {
 			if (args.length < 3) {
 				replyToCommand(msg, 'Not enough arguments');
 				return;
 			}
+			
+			const emojiId = extractEmojiId(args[1]);
+			const roleId = extractRoleId(args[2]);
+
 			db.query('SELECT * FROM ReactionRoleDictionary WHERE GuildID=? AND ReactionId=?', [msg.guild.id, emojiId], (error, results: ReactionRoleDictionary[]) => {
 				if (error) throw error;
 				if (results.length > 0) {
@@ -101,14 +97,27 @@ export default (msg: Message, _: Client, db: Connection) => {
 			updateRRD(db);
 
 			break;
-		case 'update':
+		}
+		case 'update': {
 			if (args.length < 3) {
 				replyToCommand(msg, 'Not enough arguments');
 				return;
 			}
+			
+			const emojiId = extractEmojiId(args[1]);
+			const roleId = extractRoleId(args[2]);
+
 			replyToCommand(msg, 'not yet implemented');
 			break;
+		}
 		case 'remove':
+			if (args.length < 2) {
+				replyToCommand(msg, 'Not enough arguments');
+				return;
+			}
+
+			const emojiId = extractEmojiId(args[1]);
+
 			db.query('DELETE FROM ReactionRoleDictionary WHERE GuildID=? AND ReactionID=?', [msg.guild.id, emojiId], (error) => {
 				if (error) throw error;
 
@@ -117,6 +126,27 @@ export default (msg: Message, _: Client, db: Connection) => {
 			
 			updateRRD(db);
 
+			break;
+		case 'help':
+			replyToCommand(msg, `
+**Reaction-role command**
+Your go to command for all reaction-role things.
+
+> set-message <messageId> <channelId>
+Sets the message to monitor for reactions. If you try to set another message, it will stop watching the old message in favor of the new message.
+
+> add :emoji: @role
+Sets the role to give when reacting with the emoji. Each emoji can only match one role, but multiple emoji can match the same role.
+
+> update :emoji @role
+Updates the role to give on the specific emoji.
+
+> remove :emoji:
+Removes the emoji from giving a role.
+
+> help
+Shows this message.
+			`);
 			break;
 		default:
 			replyToCommand(msg, 'Unknown command (add, update, remove, set-message)');

@@ -65,7 +65,7 @@ retryConnection((con) => {
 
 	const commandHandlers = getCommandHandlers();
 
-	client.on('ready', () => {
+	client.once('ready', () => {
 		console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
 		client.user.setPresence({}).catch(console.error);
 
@@ -140,14 +140,16 @@ retryConnection((con) => {
 		if (user.id === client.user.id) return;
 		if (!messageReaction.message.guild) return;
 
-		const member = messageReaction.message.guild.members.resolve(user.id);
-		const guild = messageReaction.message.guild;
+		messageReaction.message.guild.members.fetch(user.id)
+			.then((member) => {
+				const guild = messageReaction.message.guild;
 
-		const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-		const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
+				const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id)?.RoleID;
 
-		if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
+				if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
+			});
 	});
 
 	client.on('messageReactionRemove', (messageReaction: MessageReaction, user: User) => {
@@ -155,14 +157,16 @@ retryConnection((con) => {
 		if (user.id === client.user.id) return;
 		if (!messageReaction.message.guild) return;
 
-		const member = messageReaction.message.guild.members.resolve(user.id);
-		const guild = messageReaction.message.guild;
+		messageReaction.message.guild.members.fetch(user.id)
+			.then((member) => {
+				const guild = messageReaction.message.guild;
 
-		const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-		const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id).RoleID;
+				const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id)?.RoleID;
 
-		if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
+				if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
+			});
 	});
 
 	client.on('disconnect', () => {
