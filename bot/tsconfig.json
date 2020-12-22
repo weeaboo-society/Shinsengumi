@@ -2,7 +2,8 @@
 	"compilerOptions": {
 		"module": "commonjs",
 		"sourceMap": true,
-		"noImplicitAny": true
+		"noImplicitAny": true,
+		"target": "ESNext"
 	},
 	"exclude": [
 		"**/node_modules/*"

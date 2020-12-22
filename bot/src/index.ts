@@ -27,7 +27,7 @@ import {
 import { replyToCommand } from './utils/messageUtils';
 import { extractCommand, stripBotMention } from './utils/stringUtils';
 
-const client = new Client();
+const client = new Client({ partials: ['MESSAGE', 'REACTION'] });
    
 const retryConnection = (callback: (connection: Connection) => void) => {
 	try {
@@ -53,11 +53,8 @@ const retryConnection = (callback: (connection: Connection) => void) => {
 	}
 }
 
-let connection: Connection;
-
-retryConnection((con) => {
+retryConnection((connection) => {
 	console.info('Successfully connected to db.');
-	let connection = con;
 	
 	updateCC(connection);
 	updateRRD(connection);
@@ -91,7 +88,15 @@ retryConnection((con) => {
 
 	});
 
-	client.on('message', msg => {
+	client.on('message', async (msg) => {
+		if (msg.partial) {
+			try {
+				await msg.fetch();
+			} catch (error) {
+				console.error('Something went wrong when fetching the message: ', error);
+				return;
+			}
+		}
 
 		// Ignore private messages
 		if (!msg.guild) return;
@@ -118,13 +123,6 @@ retryConnection((con) => {
 		// Clean up user input
 		const cmd = extractCommand(msg.content.trim());
 		msg.content = stripBotMention(msg.content.trim());
-		
-		{
-			// Dev testing block, code to remove before commiting
-			// console.info(msg);
-			console.info(cmd);
-			console.info(msg.content);
-		}
 
 		if (commandHandlers.has(cmd)) {
 			if (msg.member.hasPermission(commandHandlers.get(cmd).permissions)) {
@@ -135,35 +133,55 @@ retryConnection((con) => {
 		}
 	});
 
-	client.on('messageReactionAdd', (messageReaction: MessageReaction, user: User) => {
+	client.on('messageReactionAdd', async (reaction: MessageReaction, user: User) => {
+		if (reaction.partial) {
+			try {
+				await reaction.fetch()
+			} catch (error) {
+				console.error(`Error while fetching reaction: ${error}`);
+
+				return;
+			}
+		}
+
 		if (!user) return;
 		if (user.id === client.user.id) return;
-		if (!messageReaction.message.guild) return;
+		if (!reaction.message.guild) return;
 
-		messageReaction.message.guild.members.fetch(user.id)
+		reaction.message.guild.members.fetch(user.id)
 			.then((member) => {
-				const guild = messageReaction.message.guild;
+				const guild = reaction.message.guild;
 
 				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-				const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id)?.RoleID;
+				const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
 
 				if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
 			});
 	});
 
-	client.on('messageReactionRemove', (messageReaction: MessageReaction, user: User) => {
+	client.on('messageReactionRemove', async (reaction: MessageReaction, user: User) => {
+		if (reaction.partial) {
+			try {
+				await reaction.fetch()
+			} catch (error) {
+				console.error(`Error while fetching reaction: ${error}`);
+
+				return;
+			}
+		}
+
 		if (!user) return;
 		if (user.id === client.user.id) return;
-		if (!messageReaction.message.guild) return;
+		if (!reaction.message.guild) return;
 
-		messageReaction.message.guild.members.fetch(user.id)
+		reaction.message.guild.members.fetch(user.id)
 			.then((member) => {
-				const guild = messageReaction.message.guild;
+				const guild = reaction.message.guild;
 
 				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
 
-				const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === messageReaction.emoji.id)?.RoleID;
+				const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
 
 				if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
 			});
@@ -195,14 +213,14 @@ rl.on('line', (line) => {
 	This program is distributed in the hope that it will be useful,
 	but WITHOUT ANY WARRANTY; without even the implied warranty of
 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details. \n \n`);
+	GNU General Public License for more details. \n\n`);
 			break;
 		case 'show c':
 			process.stdout.write(`
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
 	the Free Software Foundation, either version 3 of the License, or
-	(at your option) any later version. \n \n`);
+	(at your option) any later version. \n\n`);
 			break;
 		default:
 			process.stdout.write('No such command \n');
