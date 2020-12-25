@@ -16,16 +16,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { TextChannel, Permissions, Message, Client } from "discord.js";
+import { Message, Permissions, TextChannel } from 'discord.js';
+
+import { BotClient } from '../botClient';
 
 export const permissions = [ Permissions.FLAGS.ADMINISTRATOR ]
 
 /**
  * 
  */
-export default (msg: Message, _: Client) => {
-	if (!msg.member.hasPermission(Permissions.FLAGS.ADMINISTRATOR)) return;
-	
+export default (msg: Message, _: BotClient) => {
 	msg.channel.bulkDelete(100).catch(console.error);
 
 	/**

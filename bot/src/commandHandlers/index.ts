@@ -20,9 +20,11 @@ import { BitFieldResolvable, Client, Message, PermissionString } from 'discord.j
 import * as fs from 'fs';
 import { Connection } from 'mysql';
 
-type MessageCommandHandlerFunc = (msg: Message, client: Client, db: Connection) => void;
+import { BotClient } from '../botClient';
 
-interface CommandHandler {
+type MessageCommandHandlerFunc = (msg: Message, client: BotClient) => void;
+
+export interface CommandHandler {
 	permissions: BitFieldResolvable<PermissionString>;
 	handler: MessageCommandHandlerFunc;
 }

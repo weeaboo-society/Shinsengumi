@@ -17,10 +17,10 @@
  **/
 
 import {
-    BitFieldResolvable, Client, Guild, Message, Permissions, PermissionString, TextChannel
+    BitFieldResolvable, Message, Permissions, PermissionString, TextChannel
 } from 'discord.js';
-import { Connection } from 'mysql';
 
+import { BotClient } from '../botClient';
 import { splitArguments } from '../utils/stringUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
@@ -28,7 +28,7 @@ export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLA
 /**
  * 
  */
-export default (msg: Message, _c: Client, _con: Connection) => {
+export default (msg: Message, client: BotClient) => {
 	const args = splitArguments(msg.content);
 
 	const messageId = args[1];

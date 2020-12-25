@@ -17,10 +17,10 @@
  **/
 
 import {
-    BitFieldResolvable, Client, Message, Permissions, PermissionString, TextChannel
+    BitFieldResolvable, Message, Permissions, PermissionString, TextChannel
 } from 'discord.js';
-import { Connection } from 'mysql';
 
+import { BotClient } from '../botClient';
 import { ReactionRoleDictionary, ReactionRoleMessage } from '../db_types';
 import { updateRRD, updateRRM } from '../state';
 import { replyToCommand } from '../utils/messageUtils';
@@ -38,12 +38,13 @@ let state: waitingForInput[] = [];
 /**
  * 
  */
-export default (msg: Message, _: Client, db: Connection) => {
+export default (msg: Message, client: BotClient) => {
 
 	const args = splitArguments(msg.content);
 
 	switch(args[0]) {
-		case 'set-message':
+		case 'set-message': {
+			// TODO: Currently, doesn't quite set the new message properly, it still watches the old message, issue could also be because of the state.
 			if (args.length < 3) {
 				replyToCommand(msg, 'Not enough arguments');
 				return;
@@ -51,27 +52,22 @@ export default (msg: Message, _: Client, db: Connection) => {
 			const messageId = args[1];
 			const channelId = args[2];
 
-			db.query('SELECT * FROM ReactionRoleMessage WHERE GuildID=?', msg.guild.id, (error, results: ReactionRoleMessage[]) => {
-				if (error) throw error;
-				if (results.length >= 1) {
-					db.query('UPDATE ReactionRoleMessage SET MessageID=?, ChannelID=? WHERE GuildID=?', [messageId, channelId, msg.guild.id], (error) => {
-						if (error) throw error;
-
-						replyToCommand(msg, 'Successfully updated row');
-					});
-				} else {
-					db.query('INSERT INTO ReactionRoleMessage (GuildID, MessageID, ChannelID) VALUES (?, ?, ?)', [msg.guild.id, messageId, channelId], (error) => {
-						if (error) throw error;
-						
-						replyToCommand(msg, 'Successfully created row');
-					});
-				}
-			});
-
-			(msg.guild.channels.resolve(channelId) as TextChannel).messages.fetch(messageId);
-			updateRRM(db);
+			client.databaseClient.setReactionRoleMessage(msg.guild.id, channelId, messageId)
+				.then(n => {
+					if (n === 0) {
+						replyToCommand(msg, 'Successfully set the message as the reaction-role message');
+						client.updateReactionRoleMessage();
+					} else if (n === 1) {
+						replyToCommand(msg, 'Successfully updated the message as the reaction-role message');
+						client.updateReactionRoleMessage();
+					}
+				})
+				.catch(err => {
+					client.logger.error(err);
+				});
 
 			break;
+		}
 		case 'add': {
 			if (args.length < 3) {
 				replyToCommand(msg, 'Not enough arguments');
@@ -81,20 +77,18 @@ export default (msg: Message, _: Client, db: Connection) => {
 			const emojiId = extractEmojiId(args[1]);
 			const roleId = extractRoleId(args[2]);
 
-			db.query('SELECT * FROM ReactionRoleDictionary WHERE GuildID=? AND ReactionId=?', [msg.guild.id, emojiId], (error, results: ReactionRoleDictionary[]) => {
-				if (error) throw error;
-				if (results.length > 0) {
-					replyToCommand(msg, 'This emoji already has an associated role, did you mean to `update`?');
-				} else {
-					db.query('INSERT INTO ReactionRoleDictionary (GuildID, RoleID, ReactionID) VALUES (?, ?, ?)', [msg.guild.id, roleId, emojiId], (error) => {
-						if (error) throw error;
-
+			client.databaseClient.addReactionRoleEmoji(msg.guild.id, emojiId, roleId)
+				.then(n => {
+					if (n === 0) {
 						replyToCommand(msg, 'Successfully linked the emoji to the role.');
-					});
-				}
-			});
-
-			updateRRD(db);
+						client.updateReactionRoleDictionary();
+					} else if (n === 1) {
+						replyToCommand(msg, 'This emoji already has an associated role, did you mean to `update`?');
+					}
+				})
+				.catch(err => {
+					client.logger.error(err);
+				});
 
 			break;
 		}
@@ -110,7 +104,7 @@ export default (msg: Message, _: Client, db: Connection) => {
 			replyToCommand(msg, 'not yet implemented');
 			break;
 		}
-		case 'remove':
+		case 'remove': {
 			if (args.length < 2) {
 				replyToCommand(msg, 'Not enough arguments');
 				return;
@@ -118,16 +112,20 @@ export default (msg: Message, _: Client, db: Connection) => {
 
 			const emojiId = extractEmojiId(args[1]);
 
-			db.query('DELETE FROM ReactionRoleDictionary WHERE GuildID=? AND ReactionID=?', [msg.guild.id, emojiId], (error) => {
-				if (error) throw error;
-
-				replyToCommand(msg, 'Successfully remove link between emoji and role.');
-			})
-			
-			updateRRD(db);
-
+			client.databaseClient.removeReactionRoleEmoji(msg.guild.id, emojiId)
+				.then(n => {
+					if (n === 0) {
+						replyToCommand(msg, 'Successfully remove link between emoji and role.');
+						client.updateReactionRoleDictionary();
+					}
+				})
+				.catch(err => {
+					client.logger.error(err);
+				});
 			break;
+		}
 		case 'help':
+		default: {
 			replyToCommand(msg, `
 **Reaction-role command**
 Your go to command for all reaction-role things.
@@ -148,8 +146,6 @@ Removes the emoji from giving a role.
 Shows this message.
 			`);
 			break;
-		default:
-			replyToCommand(msg, 'Unknown command (add, update, remove, set-message)');
-			break;
+		}
 	}
 }

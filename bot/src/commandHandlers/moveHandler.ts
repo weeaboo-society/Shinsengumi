@@ -16,16 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { splitArguments } from '../utils/stringUtils';
+import { Message, Permissions } from 'discord.js';
+
+import { BotClient } from '../botClient';
 import { replyToCommand } from '../utils/messageUtils';
-import { Permissions, Message, Client } from 'discord.js';
+import { splitArguments } from '../utils/stringUtils';
 
 export const permissions = [ Permissions.FLAGS.MOVE_MEMBERS ]
 
 /**
  * 
  */
-export default (msg: Message, _: Client) => {
+export default (msg: Message, _: BotClient) => {
 	const args = splitArguments(msg.content);
 
 	if (args.length != 2) {

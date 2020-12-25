@@ -2,9 +2,6 @@ version: "3.9"
 
 services: 
 
-  data:
-    build: data/.
-
   db:
     image: mysql:8.0.22
     container_name: shinsengumi_db
@@ -16,8 +13,7 @@ services:
       MYSQL_ROOT_PASSWORD: password
     volumes:
       - ./data:/docker-entrypoint-initdb.d
-    volumes_from:
-      - data
+      - data_volume:/var/lib/mysql
 
   client:
     build:
@@ -30,6 +26,8 @@ services:
     environment: 
       MYSQL_ROOT_PASSWORD: password
 
+volumes:
+  data_volume:
 
 networks:
   db:

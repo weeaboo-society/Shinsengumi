@@ -16,8 +16,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { BitFieldResolvable, Client, Message, Permissions, PermissionString } from 'discord.js';
+import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
+import { BotClient } from '../botClient';
 import { replyToCommand } from '../utils/messageUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
@@ -25,6 +26,6 @@ export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLA
 /**
  * 
  */
-export default (msg: Message, _: Client) => {
+export default (msg: Message, _: BotClient) => {
 	replyToCommand(msg, 'pong');
 }

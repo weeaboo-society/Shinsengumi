@@ -16,188 +16,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { Client, MessageReaction, TextChannel, User } from 'discord.js';
-import { Connection, createConnection } from 'mysql';
+import { Client as DiscordjsClient } from 'discord.js';
 import { createInterface } from 'readline';
 
-import { getCommandHandlers } from './commandHandlers';
-import {
-    commandChannels, reactionRoleDictionary, reactionRoleMessage, updateCC, updateRRD, updateRRM
-} from './state';
-import { replyToCommand } from './utils/messageUtils';
-import { extractCommand, stripBotMention } from './utils/stringUtils';
+import { BotClient } from './botClient';
+import { DatabaseClient } from './DatabaseClient';
+import { Logger } from './Logger';
 
-const client = new Client({ partials: ['MESSAGE', 'REACTION'] });
-   
-const retryConnection = (callback: (connection: Connection) => void) => {
-	try {
-		let connection = createConnection({
-			host     : 'shinsengumi_db',
-			user     : 'root',
-			password : process.env.MYSQL_ROOT_PASSWORD,
-			database : 'yamamoto'
-		});
-
-		connection.connect((error) => {
-			if (error) {
-				console.error(error);
-				setTimeout(() => retryConnection(callback), 30000);
-			}
-
-			callback(connection);
-		});
-
-	} catch (error) {
-		console.error(error);
-		setTimeout(() => retryConnection(callback), 30000);
-	}
-}
-
-retryConnection((connection) => {
-	console.info('Successfully connected to db.');
-	
-	updateCC(connection);
-	updateRRD(connection);
-	updateRRM(connection);
-
-	const commandHandlers = getCommandHandlers();
-
-	client.once('ready', () => {
-		console.log(`Logged in as ${client.user.tag}!, id: ${client.user.id}`);
-		client.user.setPresence({}).catch(console.error);
-
-		const tryFetchReactionRoleMessage = () => {
-			if (reactionRoleMessage.length !== 0) {
-				reactionRoleMessage.forEach(rrm => {
-					let channel = client.channels.resolve(rrm.ChannelID);
-					if (channel.type === 'text') {
-						(channel as TextChannel).messages.fetch(rrm.MessageID)
-							.then(fetchedMsg => console.info(`Fetched message ${fetchedMsg}.`))
-							.catch((err) => {
-								console.error(err);
-								setTimeout(() => tryFetchReactionRoleMessage(), 30000);
-							});
-					}
-				});
-			} else {
-				setTimeout(() => tryFetchReactionRoleMessage(), 30000);
-			}
-		};
-
-		tryFetchReactionRoleMessage();
-
-	});
-
-	client.on('message', async (msg) => {
-		if (msg.partial) {
-			try {
-				await msg.fetch();
-			} catch (error) {
-				console.error('Something went wrong when fetching the message: ', error);
-				return;
-			}
-		}
-
-		// Ignore private messages
-		if (!msg.guild) return;
-		// Ignore own messages
-		if (msg.author.id === client.user.id) return;
-		// Ignore message if not in the guild's command channel
-		const guildCommandChannels = commandChannels.filter((cc) => cc.GuildID === msg.guild.id && cc.ChannelID !== undefined);
-		if (guildCommandChannels.length === 0 && msg.mentions.has(client.user)) {
-			// There is no command channels setup for the guild
-
-			// Special case for `setcc` command, this command can be used in any channel.
-			if (extractCommand(msg.content.trim()) === 'setcc') {
-				msg.content = stripBotMention(msg.content.trim());
-
-				commandHandlers.get('setcc').handler(msg, client, connection);
-				return;
-			}
-
-			replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
-			return;
-		}
-		if (!guildCommandChannels.find(cc => cc.ChannelID === msg.channel.id)) return;
-
-		// Clean up user input
-		const cmd = extractCommand(msg.content.trim());
-		msg.content = stripBotMention(msg.content.trim());
-
-		if (commandHandlers.has(cmd)) {
-			if (msg.member.hasPermission(commandHandlers.get(cmd).permissions)) {
-				commandHandlers.get(cmd).handler(msg, client, connection);
-			}
-		} else {
-			console.error(`no such command: ${msg.content}`);
-		}
-	});
-
-	client.on('messageReactionAdd', async (reaction: MessageReaction, user: User) => {
-		if (reaction.partial) {
-			try {
-				await reaction.fetch()
-			} catch (error) {
-				console.error(`Error while fetching reaction: ${error}`);
-
-				return;
-			}
-		}
-
-		if (!user) return;
-		if (user.id === client.user.id) return;
-		if (!reaction.message.guild) return;
-
-		reaction.message.guild.members.fetch(user.id)
-			.then((member) => {
-				const guild = reaction.message.guild;
-
-				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-
-				const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
-
-				if (roleToAdd) member.roles.add(roleToAdd).catch(console.error);
-			});
-	});
-
-	client.on('messageReactionRemove', async (reaction: MessageReaction, user: User) => {
-		if (reaction.partial) {
-			try {
-				await reaction.fetch()
-			} catch (error) {
-				console.error(`Error while fetching reaction: ${error}`);
-
-				return;
-			}
-		}
-
-		if (!user) return;
-		if (user.id === client.user.id) return;
-		if (!reaction.message.guild) return;
-
-		reaction.message.guild.members.fetch(user.id)
-			.then((member) => {
-				const guild = reaction.message.guild;
-
-				const guildRRDictionary = reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-
-				const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
-
-				if (roleToRemove) member.roles.remove(roleToRemove).catch(console.error);
-			});
-	});
-
-	client.on('disconnect', () => {
-		connection.end();
-	});
+const discordjsClient = new DiscordjsClient({ partials: ['MESSAGE', 'REACTION', 'USER'] });
+const logger = new Logger('EST');
+const databaseClient = new DatabaseClient(logger, {
+	host     : 'shinsengumi_db',
+	user     : 'root',
+	password : process.env.MYSQL_ROOT_PASSWORD,
+	database : 'yamamoto'
 });
+const botClient = new BotClient(logger, discordjsClient, databaseClient);
+
+botClient.init();
 
 const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout
 });
 
-console.info(`
+process.stdout.write(`
 	Shinsengumi  Copyright (C) 2020  Yi Fan Song<yfsong00@gmail.com>
 	This program comes with ABSOLUTELY NO WARRANTY; for details type 'show w'.
 	This is free software, and you are welcome to redistribute it
@@ -228,4 +71,3 @@ rl.on('line', (line) => {
 	}
 });
 
-client.login(process.env.BOT_TOKEN);

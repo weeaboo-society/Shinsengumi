@@ -16,27 +16,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { BitFieldResolvable, Client, Message, Permissions, PermissionString } from 'discord.js';
-import { Connection } from 'mysql';
+import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
-import { CommandChannels } from '../db_types';
-import { updateCC } from '../state';
+import { BotClient } from '../botClient';
 import { replyToCommand } from '../utils/messageUtils';
 import { extractChannelId, splitArguments } from '../utils/stringUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
 
-interface waitingForInput {
-	input: string;
-	callback: () => void;
-}
-
-let state: waitingForInput[] = [];
-
 /**
  * 
  */
-export default (msg: Message, _: Client, db: Connection) => {
+export default (msg: Message, client: BotClient) => {
 
 	let target: string;
 	const args = splitArguments(msg.content);
@@ -47,21 +38,23 @@ export default (msg: Message, _: Client, db: Connection) => {
 		target = extractChannelId(args[0]);
 	}
 
-	db.query('SELECT * FROM CommandChannels WHERE GuildID=?', msg.guild.id, (error, results: CommandChannels[]) => {
-		if (error) throw error;
-
-		if (results.find(cc => cc.ChannelID === target)) {
-			replyToCommand(msg, 'The target channel is already set as a command channel');
-			return;
-		}
-
-		db.query('INSERT INTO CommandChannels (GuildID, ChannelID) VALUES (?, ?)', [msg.guild.id, target], (error) => {
-			if (error) throw error;
-
-			replyToCommand(msg, 'The channel has been added to the command channels.');
-
-			// Update the commandChannels list
-			updateCC(db);
+	client.databaseClient.addCommandChannel(msg.guild.id, target)
+		.then(n => {
+			switch(n) {
+				case 0: {
+					replyToCommand(msg, 'The channel has been added to the command channels.');
+		
+					// Update the commandChannels list
+					client.updateCommandChannels();
+					break;
+				}
+				case 1: {
+					replyToCommand(msg, 'The target channel is already set as a command channel');
+					break;
+				}
+			}
+		})
+		.catch(err => {
+			client.logger.error(err);
 		});
-	});
 }

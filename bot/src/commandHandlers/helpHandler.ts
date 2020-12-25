@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import {
-    BitFieldResolvable, Client, Message, Permissions, PermissionString, TextChannel
-} from 'discord.js';
+import { BitFieldResolvable, Client, Message, Permissions, PermissionString } from 'discord.js';
 import { Connection } from 'mysql';
 
+import { BotClient } from '../botClient';
 import { splitArguments } from '../utils/stringUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
@@ -28,7 +27,7 @@ export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLA
 /**
  * 
  */
-export default (msg: Message, _c: Client, _con: Connection) => {
+export default (msg: Message, _: BotClient) => {
 	const args = splitArguments(msg.content);
 
 	
