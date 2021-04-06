@@ -65,7 +65,12 @@ export const extractRoleId = (str: string) => {
 }
 
 /**
+ * Splits arguments from a typical command message with strings. This will
+ * discard the first word (aka the command) and return all the arguments.
  * 
+ * 	example: 
+ * 	'I want this "and that"' -> ['want', 'this', 'and that']
+ * @param str Command string
  */
 export const splitArguments = (str: string): string[] => {
 	// TODO: this is jank, maybe find better way to do this

@@ -18,7 +18,7 @@
 
 import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
-import { BotClient } from '../botClient';
+import { BotClient } from '../BotClient';
 import { replyToCommand } from '../utils/messageUtils';
 import { extractChannelId, splitArguments } from '../utils/stringUtils';
 

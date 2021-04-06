@@ -18,7 +18,7 @@
 
 import { Message, Permissions } from 'discord.js';
 
-import { BotClient } from '../botClient';
+import { BotClient } from '../BotClient';
 import { replyToCommand } from '../utils/messageUtils';
 import { splitArguments } from '../utils/stringUtils';
 

@@ -68,122 +68,8 @@ export class BotClient {
 		this.discordjsClient.once('ready', async () => {
 			this.logger.log(`Logged in as ${this.discordjsClient.user.username}!`);
 
-			this.discordjsClient.on('message', async (msg) => {
-				if (msg.partial) {
-					try {
-						await msg.fetch();
-					} catch (error) {
-						this.logger.error('Something went wrong when fetching the message: ', error);
-						return;
-					}
-				}
-			
-				// Ignore private messages
-				if (!msg.guild) return;
-				// Ignore own messages
-				if (msg.author.id === this.discordjsClient.user.id) return;
-				// Ignore message if not in the guild's command channel
-				const guildCommandChannels = this.state.commandChannels.filter((cc) => cc.GuildID === msg.guild.id && cc.ChannelID !== undefined);
-				if (guildCommandChannels.length === 0 && msg.mentions.has(this.discordjsClient.user)) {
-					// There is no command channels setup for the guild
-			
-					// Special case for `setcc` command, this command can be used in any channel.
-					if (extractCommand(msg.content.trim()) === 'setcc') {
-						msg.content = stripBotMention(msg.content.trim());
-			
-						this.commandHandlers.get('setcc').handler(msg, this);
-						return;
-					}
-			
-					replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
-					return;
-				}
-				if (!guildCommandChannels.find(cc => cc.ChannelID === msg.channel.id)) return;
-			
-				// Clean up user input
-				const cmd = extractCommand(msg.content.trim());
-				msg.content = stripBotMention(msg.content.trim());
-			
-				if (this.commandHandlers.has(cmd)) {
-					if (msg.member.hasPermission(this.commandHandlers.get(cmd).permissions)) {
-						this.commandHandlers.get(cmd).handler(msg, this);
-					}
-				} else {
-					this.logger.error(`no such command: ${msg.content}`);
-				}
-			});
-			
-			this.discordjsClient.on('messageReactionAdd', async (reaction: MessageReaction, user: User) => {
-				if (reaction.partial) {
-					try {
-						await reaction.fetch();
-					} catch (error) {
-						this.logger.error(`Error while fetching reaction: ${error}`);
-			
-						return;
-					}
-				}
-				if (user.partial) {
-					try {
-						await user.fetch();
-					} catch (error) {
-						this.logger.error(`Error while fetching user: ${error}`)
-
-						return;
-					}
-				}
-			
-				if (!user) return;
-				if (user.id === this.discordjsClient.user.id) return;
-				if (!reaction.message.guild) return;
-			
-				reaction.message.guild.members.fetch(user.id)
-					.then((member) => {
-						const guild = reaction.message.guild;
-			
-						const guildRRDictionary = this.state.reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-			
-						const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
-			
-						if (roleToAdd) member.roles.add(roleToAdd).catch(this.logger.error);
-					});
-			});
-			
-			this.discordjsClient.on('messageReactionRemove', async (reaction: MessageReaction, user: User) => {
-				if (reaction.partial) {
-					try {
-						await reaction.fetch();
-					} catch (error) {
-						this.logger.error(`Error while fetching reaction: ${error}`);
-			
-						return;
-					}
-				}
-				if (user.partial) {
-					try {
-						await user.fetch();
-					} catch (error) {
-						this.logger.error(`Error while fetching user: ${error}`)
-
-						return;
-					}
-				}
-			
-				if (!user) return;
-				if (user.id === this.discordjsClient.user.id) return;
-				if (!reaction.message.guild) return;
-			
-				reaction.message.guild.members.fetch(user.id)
-					.then((member) => {
-						const guild = reaction.message.guild;
-			
-						const guildRRDictionary = this.state.reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
-			
-						const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
-			
-						if (roleToRemove) member.roles.remove(roleToRemove).catch(this.logger.error);
-					});
-			});
+			this.attachMessageListener();
+			this.attachReactionListeners();
 			
 			this.discordjsClient.on('disconnect', () => {
 				this.databaseClient.endConnection();
@@ -234,5 +120,126 @@ export class BotClient {
 			this.logger.log(`Failed to update reaction role message, trying again in ${this.timeBetweenRetries} seconds.`);
 			setTimeout(this.updateReactionRoleMessage, this.timeBetweenRetries * 1000);
 		}
+	}
+
+	private attachMessageListener() {
+		this.discordjsClient.on('message', async (msg) => {
+			if (msg.partial) {
+				try {
+					await msg.fetch();
+				} catch (error) {
+					this.logger.error('Something went wrong when fetching the message: ', error);
+					return;
+				}
+			}
+		
+			// Ignore private messages
+			if (!msg.guild) return;
+			// Ignore own messages
+			if (msg.author.id === this.discordjsClient.user.id) return;
+			// Ignore message if not in the guild's command channel
+			const guildCommandChannels = this.state.commandChannels.filter((cc) => cc.GuildID === msg.guild.id && cc.ChannelID !== undefined);
+			if (guildCommandChannels.length === 0 && msg.mentions.has(this.discordjsClient.user)) {
+				// There is no command channels setup for the guild
+		
+				// Special case for `setcc` command, this command can be used in any channel.
+				if (extractCommand(msg.content.trim()) === 'setcc') {
+					msg.content = stripBotMention(msg.content.trim());
+		
+					this.commandHandlers.get('setcc').handler(msg, this);
+					return;
+				}
+		
+				replyToCommand(msg, 'There is no command channel setup for this server, use the `setcc` command to set one (You must be an administrator).');
+				return;
+			}
+			if (!guildCommandChannels.find(cc => cc.ChannelID === msg.channel.id)) return;
+		
+			// Clean up user input
+			const cmd = extractCommand(msg.content.trim());
+			msg.content = stripBotMention(msg.content.trim());
+		
+			if (this.commandHandlers.has(cmd)) {
+				if (msg.member.hasPermission(this.commandHandlers.get(cmd).permissions)) {
+					this.commandHandlers.get(cmd).handler(msg, this);
+				}
+			} else {
+				this.logger.error(`no such command: ${msg.content}`);
+			}
+		});
+	}
+
+	private attachReactionListeners() {
+		this.discordjsClient.on('messageReactionAdd', async (reaction: MessageReaction, user: User) => {
+			if (reaction.partial) {
+				try {
+					await reaction.fetch();
+				} catch (error) {
+					this.logger.error(`Error while fetching reaction: ${error}`);
+		
+					return;
+				}
+			}
+			if (user.partial) {
+				try {
+					await user.fetch();
+				} catch (error) {
+					this.logger.error(`Error while fetching user: ${error}`)
+
+					return;
+				}
+			}
+		
+			if (!user) return;
+			if (user.id === this.discordjsClient.user.id) return;
+			if (!reaction.message.guild) return;
+		
+			reaction.message.guild.members.fetch(user.id)
+				.then((member) => {
+					const guild = reaction.message.guild;
+		
+					const guildRRDictionary = this.state.reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+		
+					const roleToAdd = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
+		
+					if (roleToAdd) member.roles.add(roleToAdd).catch(this.logger.error);
+				});
+		});
+		
+		this.discordjsClient.on('messageReactionRemove', async (reaction: MessageReaction, user: User) => {
+			if (reaction.partial) {
+				try {
+					await reaction.fetch();
+				} catch (error) {
+					this.logger.error(`Error while fetching reaction: ${error}`);
+		
+					return;
+				}
+			}
+			if (user.partial) {
+				try {
+					await user.fetch();
+				} catch (error) {
+					this.logger.error(`Error while fetching user: ${error}`)
+
+					return;
+				}
+			}
+		
+			if (!user) return;
+			if (user.id === this.discordjsClient.user.id) return;
+			if (!reaction.message.guild) return;
+		
+			reaction.message.guild.members.fetch(user.id)
+				.then((member) => {
+					const guild = reaction.message.guild;
+		
+					const guildRRDictionary = this.state.reactionRoleDictionary.filter(entry => entry.GuildID === guild.id);
+		
+					const roleToRemove = guildRRDictionary.find(entry => entry.ReactionID === reaction.emoji.id)?.RoleID;
+		
+					if (roleToRemove) member.roles.remove(roleToRemove).catch(this.logger.error);
+				});
+		});
 	}
 }

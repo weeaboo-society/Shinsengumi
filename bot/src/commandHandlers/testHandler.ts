@@ -20,7 +20,7 @@ import {
     BitFieldResolvable, Message, Permissions, PermissionString, TextChannel
 } from 'discord.js';
 
-import { BotClient } from '../botClient';
+import { BotClient } from '../BotClient';
 import { splitArguments } from '../utils/stringUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;

@@ -4,4 +4,4 @@ USER node
 
 WORKDIR /home/node/shinsengumi
 
-ENTRYPOINT [ "/bin/bash" ]
+CMD [ "/bin/bash" ]

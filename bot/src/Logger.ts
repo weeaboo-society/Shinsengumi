@@ -36,7 +36,7 @@ export class Logger {
 	public log(...data: any[]) {
 		let now = new Date(Date.now());
 
-		console.log(`[${now.toLocaleString('en-CA', { timeZone: this.timezone })}]`, data);
+		console.log(`[${now.toLocaleString('en-CA', { timeZone: this.timezone })}]`, ...data);
 	}
 
 	/**
@@ -46,7 +46,7 @@ export class Logger {
 	public error(...data: any[]) {
 		let now = new Date(Date.now());
 
-		console.error(`[${now.toLocaleString('en-CA', { timeZone: this.timezone })}]`, data);
+		console.error(`[${now.toLocaleString('en-CA', { timeZone: this.timezone })}]`, ...data);
 	}
 
 }

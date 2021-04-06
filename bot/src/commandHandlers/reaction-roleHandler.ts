@@ -16,24 +16,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import {
-    BitFieldResolvable, Message, Permissions, PermissionString, TextChannel
-} from 'discord.js';
+import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
-import { BotClient } from '../botClient';
-import { ReactionRoleDictionary, ReactionRoleMessage } from '../db_types';
-import { updateRRD, updateRRM } from '../state';
+import { BotClient } from '../BotClient';
 import { replyToCommand } from '../utils/messageUtils';
 import { extractEmojiId, extractRoleId, splitArguments } from '../utils/stringUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
 
-interface waitingForInput {
-	input: string;
-	callback: () => void;
-}
+const helpMsg = `
+**Reaction-role command**
+Your go to command for all reaction-role things.
 
-let state: waitingForInput[] = [];
+> set-message <messageId> <channelId>
+Sets the message to monitor for reactions. If you try to set another message, it will stop watching the old message in favor of the new message.
+
+> add :emoji: @role
+Sets the role to give when reacting with the emoji. Each emoji can only match one role, but multiple emoji can match the same role.
+
+> update :emoji @role
+Updates the role to give on the specific emoji.
+
+> remove :emoji:
+Removes the emoji from giving a role.
+
+> help
+Shows this message.\n`;
 
 /**
  * 
@@ -44,7 +52,6 @@ export default (msg: Message, client: BotClient) => {
 
 	switch(args[0]) {
 		case 'set-message': {
-			// TODO: Currently, doesn't quite set the new message properly, it still watches the old message, issue could also be because of the state.
 			if (args.length < 3) {
 				replyToCommand(msg, 'Not enough arguments');
 				return;
@@ -126,25 +133,7 @@ export default (msg: Message, client: BotClient) => {
 		}
 		case 'help':
 		default: {
-			replyToCommand(msg, `
-**Reaction-role command**
-Your go to command for all reaction-role things.
-
-> set-message <messageId> <channelId>
-Sets the message to monitor for reactions. If you try to set another message, it will stop watching the old message in favor of the new message.
-
-> add :emoji: @role
-Sets the role to give when reacting with the emoji. Each emoji can only match one role, but multiple emoji can match the same role.
-
-> update :emoji @role
-Updates the role to give on the specific emoji.
-
-> remove :emoji:
-Removes the emoji from giving a role.
-
-> help
-Shows this message.
-			`);
+			replyToCommand(msg, helpMsg);
 			break;
 		}
 	}

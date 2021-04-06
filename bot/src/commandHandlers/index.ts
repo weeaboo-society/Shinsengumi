@@ -16,11 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { BitFieldResolvable, Client, Message, PermissionString } from 'discord.js';
+import { BitFieldResolvable, Message, PermissionString } from 'discord.js';
 import * as fs from 'fs';
-import { Connection } from 'mysql';
 
-import { BotClient } from '../botClient';
+import { BotClient } from '../BotClient';
 
 type MessageCommandHandlerFunc = (msg: Message, client: BotClient) => void;
 

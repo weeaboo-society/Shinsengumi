@@ -18,15 +18,15 @@
 
 import { Message, Permissions, TextChannel } from 'discord.js';
 
-import { BotClient } from '../botClient';
+import { BotClient } from '../BotClient';
 
 export const permissions = [ Permissions.FLAGS.ADMINISTRATOR ]
 
 /**
  * 
  */
-export default (msg: Message, _: BotClient) => {
-	msg.channel.bulkDelete(100).catch(console.error);
+export default (msg: Message, client: BotClient) => {
+	msg.channel.bulkDelete(100).catch(client.logger.error);
 
 	/**
 	 * Block to purge over the limit of 

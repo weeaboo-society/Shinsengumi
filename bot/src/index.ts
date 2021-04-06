@@ -19,7 +19,7 @@
 import { Client as DiscordjsClient } from 'discord.js';
 import { createInterface } from 'readline';
 
-import { BotClient } from './botClient';
+import { BotClient } from './BotClient';
 import { DatabaseClient } from './DatabaseClient';
 import { Logger } from './Logger';
 
@@ -44,8 +44,7 @@ process.stdout.write(`
 	Shinsengumi  Copyright (C) 2020  Yi Fan Song<yfsong00@gmail.com>
 	This program comes with ABSOLUTELY NO WARRANTY; for details type 'show w'.
 	This is free software, and you are welcome to redistribute it
-	under certain conditions; type 'show c' for details.
-`);
+	under certain conditions; type 'show c' for details.\n\n`);
 
 rl.on('line', (line) => {
 	switch(line) {

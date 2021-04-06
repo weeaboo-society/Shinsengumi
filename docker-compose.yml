@@ -19,6 +19,7 @@ services:
     build:
       context: ./bot
     container_name: shinsengumi_client
+    restart: always
     networks: 
       - db
     depends_on:

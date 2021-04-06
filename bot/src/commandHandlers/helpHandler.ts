@@ -16,19 +16,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { BitFieldResolvable, Client, Message, Permissions, PermissionString } from 'discord.js';
-import { Connection } from 'mysql';
+import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
-import { BotClient } from '../botClient';
-import { splitArguments } from '../utils/stringUtils';
+import { BotClient } from '../BotClient';
+import { replyToCommand } from '../utils/messageUtils';
 
 export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLAGS.ADMINISTRATOR;
+
+const helpMsg = `
+**Shinsengumi Commands**
+
+> move <origin> <destination>
+moves user from origin to destination voice channels
+
+> ping
+check if bot is dead
+
+> purge
+removes up to 100 messages that are less than 2 weeks old (limitations of discord api)
+
+> reaction-role
+setting up reaction roles, check its help page
+
+> setcc
+setting up a command channel
+`;
 
 /**
  * 
  */
 export default (msg: Message, _: BotClient) => {
-	const args = splitArguments(msg.content);
-
-	
+	replyToCommand(msg, helpMsg);
 }

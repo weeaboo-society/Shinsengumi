@@ -1,4 +1,4 @@
 alias dc='docker-compose'
-alias dc-dev='docker-compose -f docker-comose.dev.yml'
+alias dc-dev='docker-compose -f docker-compose.dev.yml'
 alias dc-rm='docker-compose down --rmi all'
 alias dc-rm-dev='docker-compose -f docker-compose.dev.yml down --rmi all'
