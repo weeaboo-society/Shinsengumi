@@ -11,9 +11,12 @@
 	"author": "yi fan song <yfsong00@gmail.com>",
 	"license": "GPL-3.0-or-later",
 	"dependencies": {
+		"@discordjs/opus": "^0.5.0",
 		"discord.js": "^12.2.0",
 		"dotenv": "^8.2.0",
-		"mysql": "^2.18.1"
+		"ffmpeg-static": "^4.3.0",
+		"mysql": "^2.18.1",
+		"ytdl-core": "^4.5.0"
 	},
 	"devDependencies": {
 		"@types/jest": "^26.0.10",

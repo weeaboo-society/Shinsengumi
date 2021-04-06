@@ -16,9 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import {
-    BitFieldResolvable, Message, Permissions, PermissionString, TextChannel
-} from 'discord.js';
+import { BitFieldResolvable, Message, Permissions, PermissionString } from 'discord.js';
 
 import { BotClient } from '../BotClient';
 import { splitArguments } from '../utils/stringUtils';
@@ -30,19 +28,4 @@ export const permissions: BitFieldResolvable<PermissionString> = Permissions.FLA
  */
 export default (msg: Message, client: BotClient) => {
 	const args = splitArguments(msg.content);
-
-	const messageId = args[1];
-	const channelId = msg.guild.channels.cache.filter(ch => ch.type === 'text').filter(ch => {
-		let fetchedMessage;
-		let lock = true;
-
-		(ch as TextChannel).messages.fetch(messageId)
-			.then(m => {fetchedMessage = m})
-			.catch(console.error)
-			.finally(() => {lock = false});
-		
-		while(lock);
-
-		return fetchedMessage !== undefined;
-	});
 }

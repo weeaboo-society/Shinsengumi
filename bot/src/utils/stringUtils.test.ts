@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  **/
 
-import { splitArguments } from "./stringUtils";
+import { splitArguments } from './stringUtils';
 
 describe('split args', () => {
 	it('first quote second no quote', () => {
@@ -37,5 +37,10 @@ describe('split args', () => {
 	it('both quote', () => {
 		const result = splitArguments('move \"this channel\" \"that channel\"');
 		expect(result).toStrictEqual(['this channel', 'that channel']);
+	})
+
+	it('yt link', () => {
+		const result = splitArguments('play https://youtu.be/93XmOP6-kjU');
+		expect(result).toStrictEqual(['https://youtu.be/93XmOP6-kjU']);
 	})
 });
