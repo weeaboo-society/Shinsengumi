@@ -1,0 +1,11 @@
+FROM node:14.15.1
+
+WORKDIR /home/node/shinsengumi
+
+RUN npm install -g yarn
+
+RUN yarn set version berry
+
+USER node
+
+CMD [ "/bin/bash" ]

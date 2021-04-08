@@ -3,7 +3,8 @@ version: "3.9"
 services: 
 
   db:
-    image: mysql:8.0.22
+    build:
+      context: ./database
     container_name: shinsengumi_db
     command: --default-authentication-plugin=mysql_native_password
     restart: always
@@ -12,7 +13,6 @@ services:
     environment: 
       MYSQL_ROOT_PASSWORD: password
     volumes:
-      - ./data:/docker-entrypoint-initdb.d
       - data_volume:/var/lib/mysql
 
   client:
@@ -26,6 +26,12 @@ services:
       - db
     environment: 
       MYSQL_ROOT_PASSWORD: password
+
+  web:
+    build:
+      context: ./web
+    container_name: shinsengumi_web
+    restart: always
 
 volumes:
   data_volume:
