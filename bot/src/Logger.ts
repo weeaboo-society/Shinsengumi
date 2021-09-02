@@ -1,6 +1,6 @@
 /**
  * Shinsengumi is a discord bot offering general utilities and server moderation tools
- * Copyright (C) 2020 Yi Fan Song <yfsong00@gmail.com>
+ * Copyright (C) 2020-2021 Yi Fan Song <yfsong00@gmail.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@
 /** */
 type timezones = 'EST';
 
-// TODO: Logger looks weird, investigate.
 export class Logger {
 
 	// There is probably no need to support other time zones, but keep in mind that this type will need to be changed.

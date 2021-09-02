@@ -1,6 +1,6 @@
 /**
  * Shinsengumi is a discord bot offering general utilities and server moderation tools
- * Copyright (C) 2020 Yi Fan Song <yfsong00@gmail.com>
+ * Copyright (C) 2020-2021 Yi Fan Song <yfsong00@gmail.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -165,6 +165,7 @@ export class BotClient {
 				}
 			} else {
 				this.logger.error(`no such command: ${msg.content}`);
+				replyToCommand(msg, `There is no such command: \`${cmd}\`.`);
 			}
 		});
 	}

@@ -1,6 +1,6 @@
 /**
  * Shinsengumi is a discord bot offering general utilities and server moderation tools
- * Copyright (C) 2020 Yi Fan Song <yfsong00@gmail.com>
+ * Copyright (C) 2020-2021 Yi Fan Song <yfsong00@gmail.com>
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ const helpMsg = `
 **Shinsengumi Commands**
 
 > move <origin> <destination>
-moves user from origin to destination voice channels
+moves users from origin to destination voice channels
 
 > ping
 check if bot is dead
